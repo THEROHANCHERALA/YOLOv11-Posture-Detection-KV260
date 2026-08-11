@@ -47,15 +47,12 @@ This project demonstrates complete model surgery, INT8 quantization, and deploym
 
 ## Project Structure
 
-```
-├── nets/nn.py              # Surgically modified YOLOv11
-├── utils/                  # Dataset, loss, and utility code
-├── main.py                 # Training & evaluation entry point
-├── board_inference/        # Runtime scripts for KV260
-├── docs/                   # Technical process report
-└── results/                # Sample detection outputs
-```
-
+- `nets/nn.py` — Surgically modified YOLOv11
+- `utils/` — Dataset, loss, and utility code
+- `main.py` — Training & evaluation entry point
+- `board_inference/` — Runtime scripts for KV260
+- `docs/` — Technical process report
+- `results/` — Sample detection outputs
 ---
 
 ## How to Reproduce
