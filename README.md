@@ -94,8 +94,8 @@ scripts/       # Train / export / quant helpers
   export_onnx.py
   export_xmodel.py
   quantize_*.py
-models/
-  kv260_arch.json – DPU architecture file for compiling with vai_c_xir on Kria KV260
+hardware/
+  kv260_arch.json   # DPU architecture file for vai_c_xir on Kria KV260
 docs/
   images/      # Board / result screenshots
   YOLOv11_KV260_Process_Report.docx
