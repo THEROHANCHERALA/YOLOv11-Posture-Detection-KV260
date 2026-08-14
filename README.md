@@ -1,109 +1,102 @@
-```markdown
-# YOLOv11 Posture Detection on Kria KV260
+# Edge Posture AI on Kria KV260  
+### From YOLOv4 Baseline to Optimized YOLOv11 on Arm DPU
 
-Real-time **YOLOv11n** posture classification (**Good / Bad**) optimized for the **AMD Kria KV260** Vision AI Starter Kit using Vitis AI 3.5 and the DPUCZDX8G accelerator.
+Real-time **Good / Bad posture** detection for office employee health monitoring, deployed on **AMD Kria KV260** (Arm Cortex-A53 + DPUCZDX8G).
 
-This project demonstrates complete model surgery, INT8 quantization, and deployment of a modern YOLO architecture on an **Arm-powered edge platform** (quad-core Cortex-A53 + DPU).
-
----
-
-## Key Results
-
-| Metric                    | Value                          |
-|---------------------------|--------------------------------|
-| Model                     | YOLOv11n (2-class, custom)     |
-| Input Resolution          | 512 × 512                      |
-| DPU Subgraphs             | 1 (fully accelerated)          |
-| Inference Time (DPU)      | ~12.7 ms                       |
-| Achieved Confidence       | 0.73 (Good class)              |
-| Platform                  | Kria KV260 (Arm Cortex-A53)    |
+Submitted for the **Arm AI Optimization Challenge — Physical AI track**.
 
 ---
 
-## What Was Optimized
+## 1. Problem
 
-- **Model Surgery** for DPU compatibility  
-  - SiLU → Hardsigmoid  
-  - `torch.chunk` → `torch.split`  
-  - Softmax approximations in Attention & DFL  
-  - Simplified Head (raw outputs only)
+Poor sitting posture is a common workplace issue. We need an **edge** system that:
 
-- **INT8 Quantization** with Vitis AI 3.5 (`vai_q_pytorch`)
+- Runs fully on-device (no cloud)
+- Uses low power (&lt;10 W class board)
+- Gives real-time feedback on KV260
 
-- **Compilation** to a single DPU subgraph targeting DPUCZDX8G (KV260)
-
-- Custom post-processing (DFL decode + NMS) running on the Arm CPU
+Target platform: **Kria KV260** (Arm + FPGA DPU).
 
 ---
 
-## Hardware
+## 2. Approach: Baseline → Optimize
 
-- **Board**: AMD Kria KV260 Vision AI Starter Kit  
-- **CPU**: Quad-core Arm Cortex-A53  
-- **Accelerator**: DPUCZDX8G  
-- **OS**: Petalinux / Kria base image with Vitis AI Runtime
+This is one project with two stages:
 
----
+| Stage | Model | Role |
+|-------|--------|------|
+| **Baseline** | YOLOv4-Leaky | Working, measured system on KV260 |
+| **Optimization** | YOLOv11n | Modern detector + DPU-oriented model surgery + INT8 |
 
-## Project Structure
+**Baseline repository (YOLOv4):**  
+https://github.com/THEROHANCHERALA/posture_detection_system  
 
-- `nets/nn.py` — Surgically modified YOLOv11
-- `utils/` — Dataset, loss, and utility code
-- `main.py` — Training & evaluation entry point
-- `board_inference/` — Runtime scripts for KV260
-- `docs/` — Technical process report
-- `results/` — Sample detection outputs
----
-
-## How to Reproduce
-
-### 1. Training (Host PC)
-```bash
-python -m venv yolov11-env
-source yolov11-env/bin/activate
-pip install torch torchvision pyyaml tqdm opencv-python matplotlib thop
-python main.py --train --batch-size 8 --epochs 60 --input-size 512
-```
-
-### 2. Quantization (Vitis AI 3.5 Docker)
-```bash
-# Inside vitis-ai-pytorch container
-python quantize_simple.py
-```
-
-### 3. Compile for KV260
-```bash
-vai_c_xir -x quantize_result/YOLO_int.xmodel \
-  -a /opt/vitis_ai/compiler/arch/DPUCZDX8G/KV260/arch.json \
-  -o compile_result -n yolov11_balanced
-```
-
-### 4. Run on Kria KV260
-```bash
-python3 run_inference.py
-```
+**This repository (YOLOv11 optimization):**  
+Training, surgery, quant scripts, and KV260-oriented artifacts.
 
 ---
 
-## Challenges Solved
+## 3. YOLOv4 vs YOLOv11 — Comparison
 
-- PyTorch 2.6 `weights_only` loading errors  
-- Channel mismatch after CSPModule surgery  
-- Quantizer tracing failures (complex Head)  
-- Class scores collapsing to near-zero on DPU (fixed by input normalization `img - 128`)  
-- Loose bounding boxes after INT8 quantization of DFL head  
+| Metric | YOLOv4 (baseline) | YOLOv11n (optimized path) | What it means |
+|--------|-------------------|---------------------------|---------------|
+| Architecture year | 2020 | 2024 | Newer feature design |
+| DPU fit | Mostly native (LeakyReLU) | Needs **model surgery** | Harder optimization problem |
+| Board accuracy | **79.65% mAP**, 81.42% accuracy | Strong float metrics; INT8 on DPU | Baseline is production-proven |
+| Throughput | **11.17 FPS** on KV260 | DPU inference ~**12.7 ms** (see notes) | Both real-time capable |
+| Speedup vs Arm CPU | **~1,117×** | Same hardware path (DPU) | FPGA offload is the win |
+| Power | &lt;9 W board class | Same platform | Edge-friendly |
+| Model size (class) | Heavier YOLOv4 stack | **Nano** (~2.6M params) | Better edge candidate |
+| Optimization work | Standard Vitis PTQ | SiLU→Hardsigmoid, graph fixes, INT8 | Core of *this* challenge story |
 
-Full technical write-up is available in `docs/YOLOv11_KV260_Process_Report.docx`.
+### Advantages of keeping YOLOv4 as baseline
+
+- Fully measured FPS, power, mAP, CPU vs DPU  
+- Complete health-monitoring application path  
+- Stable TF/Vitis deploy flow  
+
+### Advantages of the YOLOv11 optimization
+
+- Modern detector architecture  
+- Explicit **DPU adaptation** (not plug-and-play)  
+- Smaller nano model for edge  
+- Clear “optimize a non-DPU-friendly model” narrative (Arm Optimization Challenge)
+
+### Honest tradeoff
+
+YOLOv4 is currently the **stronger finished product** on board (accuracy + full metrics).  
+YOLOv11 is the **stronger optimization story** (surgery + quantizing a modern YOLO for DPU).  
+Together they show: *ship a working edge system, then push the model forward.*
 
 ---
 
-## License
+## 4. What was optimized (YOLOv11)
 
-MIT License
+1. **Model surgery for DPUCZDX8G**
+   - SiLU → Hardsigmoid  
+   - Adjustments so the graph is quantizable/compilable for Vitis AI  
+2. **INT8 quantization** (Vitis AI / related flow)  
+3. **Compile** for KV260 (`kv260_arch.json`)  
+4. **On-device validation** (result images under `docs/images/`)
 
 ---
 
-## Author
+## 5. Repository layout
 
-Built for the **Arm AI Optimization Challenge 2026** – Physical AI Track.
-```
+```text
+app/           # Host / board-oriented inference helpers
+  predict.py
+  float_test_board.py
+nets/          # YOLOv11 model (post-surgery)
+  nn.py
+scripts/       # Train / export / quant helpers
+  main.py
+  export_onnx.py
+  export_xmodel.py
+  quantize_*.py
+models/
+  kv260_arch.json
+docs/
+  images/      # Board / result screenshots
+  YOLOv11_KV260_Process_Report.docx
+utils/         # Dataset / NMS / training utilities
