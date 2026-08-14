@@ -1,0 +1,24 @@
+{
+  "target": "DPUCZDX8G_ISA1_B4096",
+  "fingerprint": "0x101000056010407",
+
+  "dpu": {
+    "name": "DPUCZDX8G",
+    "isa": "ISA1",
+    "core_count": 1,
+    "frequency": 300,
+
+    "architecture": {
+      "batch": 4096,
+      "load_parallel": 2,
+      "save_parallel": 2
+    },
+
+    "features": {
+      "avg_pool": true,
+      "max_pool": true,
+      "relu": true
+    }
+  }
+}
+
